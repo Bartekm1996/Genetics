@@ -380,7 +380,7 @@ class Gens{
         }
 
 
-        private void timgaA(ArrayList<Edge> edges) {
+private void timgaA(ArrayList<Edge> edges) {
             ArrayList<Ordering> orderings = new ArrayList<>();
             int runs = 0;
             double length_factor = 0.9;
@@ -388,7 +388,7 @@ class Gens{
             double K = 1;
             double diameter = 0.5;
             double L0 = 960;
-            double energy = 0;
+            double energy = 0.2;
             double L = (L0 / diameter) * length_factor;
             double[][] dm;
 			final GraphVisualisation graph = new GraphVisualisation("Timga-A");
@@ -453,8 +453,7 @@ class Gens{
                             double dx = nodes[i].getX() - nodes[k].getX();
                             double dy = nodes[i].getY() - nodes[k].getY();
                             double d = Point2D.distance(nodes[i].getX(), nodes[i].getY(), nodes[k].getX(), nodes[k].getY());
-                            energy += k_ij / 2 * (dx * dx + dy * dy + l_ij * l_ij -
-                                    2 * l_ij * d);
+                            energy += k_ij / 2 * (dx * dx + dy * dy + l_ij * l_ij - 2 * l_ij * d);
 
                         }
                     }
@@ -509,6 +508,7 @@ class Gens{
 
             return diameter;
         }
+
 
         private void calculate(ArrayList<Edge> edges) {
             ArrayList<Ordering> orderings = new ArrayList<>();
@@ -893,8 +893,10 @@ class Gens{
 			g.drawString(text, 10, 350);
             for(int i = 0; i < numberOfVerticies; i++){
                 for(int j = 0; j < numberOfVerticies; j++){
+					g.drawOval((int) (Math.cos(i*chunk)*radius) + mov,(int) (Math.sin(i*chunk)*radius) + mov, 5, 5);
+					
                     if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){
-						g.drawOval((int) (Math.cos(i*chunk)*radius) + mov,(int) (Math.sin(i*chunk)*radius) + mov, 5, 5);
+						
                         g.drawLine(
                                 (int) (Math.cos(i*chunk)*radius) + mov,
                                 (int) (Math.sin(i*chunk)*radius) + mov,
