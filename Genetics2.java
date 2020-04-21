@@ -919,7 +919,28 @@ private void timgaA(ArrayList<Edge> edges) {
             int radius = 100;
             int mov = 200;
 			g.drawString(text, 10, 350);
-            for(int i = 0; i < numberOfVerticies; i++){
+			
+			for(int i = 0; i < numberOfVerticies; i++){
+				int xx = (int) (Math.cos(i*chunk)*radius) + mov;
+				int yy = (int) (Math.sin(i*chunk)*radius) + mov;
+				g.drawOval(xx,yy, 5, 5);
+				g.drawString("" + ordering[i].getNodeNumber(), xx, yy);
+                
+				for(int j = 0; j < numberOfVerticies; j++){
+                    if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){			
+                       g.drawLine(
+                                (int) (Math.cos(i*chunk)*radius) + mov,
+                                (int) (Math.sin(i*chunk)*radius) + mov,
+                                (int) (Math.cos(j*chunk)*radius) + mov,
+                                (int) (Math.sin(j *chunk)*radius) +mov
+                                );
+                    }
+
+                }
+
+            }
+			
+           /* for(int i = 0; i < numberOfVerticies; i++){
                 for(int j = 0; j < numberOfVerticies; j++){
 					g.drawOval((int) (Math.cos(i*chunk)*radius) + mov,(int) (Math.sin(i*chunk)*radius) + mov, 5, 5);
 					
@@ -935,7 +956,7 @@ private void timgaA(ArrayList<Edge> edges) {
 
                 }
 
-            }
+            }*/
         }
     }
 
