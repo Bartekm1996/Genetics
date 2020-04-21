@@ -103,7 +103,7 @@ class Gens{
 
 
         OrderingClassTwo orderingClassTwo = new OrderingClassTwo(currentPopulation, crossover, mutation, generations);
-                         ///orderingClassTwo.timgaA(edges); 2nd fitness function
+                         //orderingClassTwo.timgaA(edges);// 2nd fitness function
                          orderingClassTwo.calculate(edges);
     }
 
@@ -473,9 +473,10 @@ class Gens{
                 }
 
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(1);
                     //new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "Timga-A");
                     graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+					graph.setText("Generation: " + runs);
 					graph.repaint();
                 } catch (InterruptedException e) {
                     System.out.println(e);
@@ -517,6 +518,10 @@ class Gens{
             int runs = 0;
             double dist = 0;
 			final GraphVisualisation graph = new GraphVisualisation("First Drawing Algorithm");
+			double fitnessScore = 0;
+			double best = Integer.MAX_VALUE;
+			int[][] bestAd = null;
+			Node[] bestOrder = null;
             while(runs != generations) {
 
                 for (int j = 0; j < this.orderings.length; j++) {
@@ -553,6 +558,7 @@ class Gens{
 
 
                     totalTime += (endTime/this.orderings.length);
+					fitnessScore = dist;
                     dist = 0;
                 }
 
@@ -563,10 +569,17 @@ class Gens{
                 }
 
                 try {
-                    Thread.sleep(10);
+                    Thread.sleep(1);
                    // new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "First Drawing Algorithm");
-				   graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
-				   graph.setText("Generation: " + runs);
+				   
+				   if(fitnessScore < best) {
+					   bestAd = adj;
+					   bestOrder = this.orderings[0];
+					   best = fitnessScore;
+					   //ONLY PRINT THE BEST
+					   graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+				   }
+				   graph.setText(String.format("Generation: %d/%d Fitness: %.2f Best: %.2f", runs, generations, fitnessScore, best));		   
 				   graph.repaint();
                 }catch (InterruptedException e){
                     System.out.println(e);
@@ -584,7 +597,11 @@ class Gens{
 
             totalTime = (totalTime/generations);
             System.out.println("Average Time For Fitness Function " + totalTime);
-			graph.setText("Average Time For Fitness Function " + totalTime);
+			graph.setText(String.format("Avg: %d Best: %.2f", totalTime, best));
+			
+			if(bestAd != null && bestOrder != null) {
+				graph.updateFunc(bestAd, bestOrder, bestOrder.length);
+			}
 			graph.repaint();
 
         }
@@ -849,7 +866,7 @@ class Gens{
         public GraphVisualisation(String title){
             this.TITLE = title;
             setTitle(title);
-            setSize(HEIGHT,WIDTH);
+            setSize(WIDTH, HEIGHT);
             setVisible(true);
             setDefaultCloseOperation(EXIT_ON_CLOSE);
 			text = "";
@@ -871,7 +888,7 @@ class Gens{
 			super.paintComponents(g);
             int radius = 100;
             int mov = 200;
-			g.drawString(text, 100, 350);
+			g.drawString(text, 10, 350);
             for(int i = 0; i < numberOfVerticies; i++){
                 for(int j = 0; j < numberOfVerticies; j++){
                     if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){
