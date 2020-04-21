@@ -27,14 +27,37 @@ public class Genetics2 {
         }
 
         */
-        Gens gens = new Gens();
+		boolean showBest = true;
+		int stepSpeed = 1;
+		for(int i = 0; i < args.length;i++) {
+			switch(i) {
+				case 0: showBest = Boolean.parseBoolean(args[i]); break;
+				case 1: stepSpeed = Integer.parseInt(args[i]); break;
+			}
+		}
+		
+        Gens gens = new Gens(showBest, stepSpeed);
         gens.readFile("edges.txt");
 
     }
 }
 
 class Gens{
-
+	private boolean showBest;
+	private int stepSpeed;
+	
+	public Gens() {
+		stepSpeed = 1;
+	}
+	
+	public Gens(boolean showBest) {
+		this(showBest, 1);
+	}
+	
+	public Gens(boolean showBest, int stepSpeed) {
+		this.showBest = showBest;
+		this.stepSpeed = stepSpeed;
+	}
 
     private Node[][] currentPopulation;
     private JFrame j;
@@ -570,17 +593,22 @@ private void timgaA(ArrayList<Edge> edges) {
                 }
 
                 try {
-                    Thread.sleep(1);
+                    Thread.sleep(stepSpeed);
                    // new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "First Drawing Algorithm");
-				   
-				   if(fitnessScore < best) {
-					   bestAd = adj;
-					   bestOrder = this.orderings[0];
+				   boolean isFitter = fitnessScore < best;
+				   if(isFitter) {
+					   bestAd = adj.clone();
+					   bestOrder = this.orderings[0].clone();
 					   best = fitnessScore;
-					   bestGen = runs;
-					   //ONLY PRINT THE BEST
+					   bestGen = runs;					   
+				   }
+				   
+				   if(showBest && isFitter) {
+					   graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+				   } else {
 					   graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
 				   }
+				   
 				   graph.setText(String.format("Generation: %d/%d Fitness: %.2f (Best: %.2f Gen: %d)", runs, generations, fitnessScore, best, bestGen));		   
 				   graph.repaint();
                 }catch (InterruptedException e){
