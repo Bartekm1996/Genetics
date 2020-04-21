@@ -520,6 +520,7 @@ class Gens{
 			final GraphVisualisation graph = new GraphVisualisation("First Drawing Algorithm");
 			double fitnessScore = 0;
 			double best = Integer.MAX_VALUE;
+			int bestGen = 0;//what gen was this reach
 			int[][] bestAd = null;
 			Node[] bestOrder = null;
             while(runs != generations) {
@@ -576,10 +577,11 @@ class Gens{
 					   bestAd = adj;
 					   bestOrder = this.orderings[0];
 					   best = fitnessScore;
+					   bestGen = runs;
 					   //ONLY PRINT THE BEST
 					   graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
 				   }
-				   graph.setText(String.format("Generation: %d/%d Fitness: %.2f Best: %.2f", runs, generations, fitnessScore, best));		   
+				   graph.setText(String.format("Generation: %d/%d Fitness: %.2f (Best: %.2f Gen: %d)", runs, generations, fitnessScore, best, bestGen));		   
 				   graph.repaint();
                 }catch (InterruptedException e){
                     System.out.println(e);
@@ -597,7 +599,7 @@ class Gens{
 
             totalTime = (totalTime/generations);
             System.out.println("Average Time For Fitness Function " + totalTime);
-			graph.setText(String.format("Avg: %d Best: %.2f", totalTime, best));
+			graph.setText(String.format("Avg: %d (Best: %.2f Gen: %d)", totalTime, best,bestGen));
 			
 			if(bestAd != null && bestOrder != null) {
 				graph.updateFunc(bestAd, bestOrder, bestOrder.length);
@@ -892,7 +894,7 @@ class Gens{
             for(int i = 0; i < numberOfVerticies; i++){
                 for(int j = 0; j < numberOfVerticies; j++){
                     if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){
-
+						g.drawOval((int) (Math.cos(i*chunk)*radius) + mov,(int) (Math.sin(i*chunk)*radius) + mov, 5, 5);
                         g.drawLine(
                                 (int) (Math.cos(i*chunk)*radius) + mov,
                                 (int) (Math.sin(i*chunk)*radius) + mov,
