@@ -30,17 +30,22 @@ public class Genetics3 {
         }
 
         */
-		/*JFrame f = new JFrame("panel");
-		f.setSize(800, 400); 
-  
-        f.show();*/
+		UserInput up = new UserInput();
+		up.showOptionPane();
+		
+		final int pop = up.getPopulation();
+		final int gen = up.getGenerations();
+		final int crs = up.getCrossOver();
+		final int mut = up.getMutation();
+
 		Thread t1 = new Thread(new Runnable() {	
 		
 			public void run() {
 				Gens gens = new Gens(true, 100);
 				gens.readFile("edges.txt");
 				gens.setMode(1);
-				gens.initPopulation(200,30,12, 300);
+				gens.setData(pop, gen, crs, mut);
+				gens.init();
 			}
 
 		});
@@ -51,7 +56,8 @@ public class Genetics3 {
 				Gens gens = new Gens(true, 100);
 				gens.readFile("edges.txt");
 				gens.setMode(2);
-				gens.initPopulation(200,30,12, 300);
+				gens.setData(pop, gen, crs, mut);
+				gens.init();
 			}
 
 		});
@@ -68,6 +74,17 @@ class Gens{
     private boolean showBest;
     private int stepSpeed;
 	private int mode;
+	private int tPop;
+	private int tGen;
+	private int tCross;
+	private int tMut;
+	
+	public void setData(int tPop, int tGen, int tCross, int tMut) {
+		this.tPop = tPop;
+		this.tGen = tGen;
+		this.tCross = tCross;
+		this.tMut = tMut;
+	}
 	
     public Gens() {
         stepSpeed = 250;
@@ -88,7 +105,6 @@ class Gens{
 	}
     private Node[][] currentPopulation;
     private JFrame j;
-    private ArrayList<String> tmp = new ArrayList<>();
     private ArrayList<Edge> edges = new ArrayList<>();
     private ArrayList<Node> nodes = new ArrayList<>();
     private ArrayList<Node> tmpNodes = new ArrayList<>();
@@ -111,8 +127,13 @@ class Gens{
         return  maxNodeOne > maxNodeTwo ? maxNodeOne : maxNodeTwo;
     }
 
-    public void initPopulation(int popSize, int crossover, int mutation, int generations){
-
+    public void init(){
+		int popSize = tPop;
+		int crossover = tCross;
+		int mutation = tMut;
+		int generations = tGen;
+		
+		
         int max = (getMax(edges)+1);
         adj = new int[max][max];
 
@@ -743,112 +764,7 @@ class Gens{
 
     }
 
-    private void showOptionPane(){
-
-        JPanel jPanel = getJPanel(4,1);
-        JPanel jPanel2 = getJPanel(4,1);
-        JPanel jPanel3 = getJPanel(1,2);
-        String[] textFields = {"Population Size (Positive Value)", "Number Of Generations (Positive Value)", "Cross Over Rate [0-100]", "Mutation Rate [0-100]"};
-        HintTextField[] jTextFields = new HintTextField[textFields.length];
-        for(int i = 0; i < jTextFields.length; i++){
-            jPanel.add(new JLabel(textFields[i]));
-            jTextFields[i] = new HintTextField(textFields[i]);
-            jTextFields[i].setToolTipText(textFields[i]);
-            jPanel2.add(jTextFields[i]);
-        }
-
-        if(!tmp.isEmpty())fillTextFields(jTextFields);
-        jPanel3.add(jPanel);
-        jPanel3.add(jPanel2);
-        j = new JFrame();
-
-        int result = JOptionPane.showConfirmDialog(null, jPanel3,
-                "Enter values", JOptionPane.DEFAULT_OPTION);
-
-
-        if(result == JOptionPane.YES_OPTION){
-            fillArray(jTextFields);
-            if(!empty(jTextFields)) {
-                try {
-                    if (!validate(jTextFields)) {
-                        showOptionPane();
-                    }else{
-                        initPopulation(Integer.parseInt(jTextFields[0].getText()), Integer.parseInt(jTextFields[2].getText())
-                                , Integer.parseInt(jTextFields[3].getText()), Integer.parseInt(jTextFields[1].getText()));
-                    }
-                }catch (NumberFormatException e){
-                    JOptionPane.showMessageDialog(j,"Please enter digits only","Alert",JOptionPane.WARNING_MESSAGE);
-                    showOptionPane();
-                }
-            }else{
-                JOptionPane.showMessageDialog(j,"Please enter all fields","Alert",JOptionPane.WARNING_MESSAGE);
-                showOptionPane();
-            }
-        }
-
-
-
-    }
-
-    private void fillArray(HintTextField[] jTextFields){
-        if(!tmp.isEmpty())tmp.clear();
-        for(JTextField jTextField : jTextFields){
-            tmp.add(jTextField.getText());
-        }
-    }
-
-    private void fillTextFields(HintTextField[] jTextFields){
-        for(int i = 0; i < jTextFields.length; i++){
-            jTextFields[i].setText(tmp.get(i));
-            jTextFields[i].setShowingHint(false);
-        }
-    }
-
-    private boolean validate(HintTextField[] jTextFields)throws NumberFormatException{
-
-        StringBuilder res = new StringBuilder();
-
-        if(Integer.parseInt(jTextFields[0].getText()) < 0){
-            res.append("1. Population Size cannot be negative\n");
-        }
-        if(Integer.parseInt(jTextFields[1].getText()) < 0){
-            res.append("2. Number of Generations cannot be negative\n");
-        }
-        if(Integer.parseInt(jTextFields[2].getText()) < 0 || Integer.parseInt(jTextFields[2].getText()) > 100){
-            res.append("3. Cross over rate need to be within the range 0 - 100\n");
-        }
-        if(Integer.parseInt(jTextFields[3].getText()) < 0 || Integer.parseInt(jTextFields[3].getText()) > 100) {
-            res.append("4. Mutation Rate Needs to be within the range 0 - 100");
-        }
-        if((Integer.parseInt(jTextFields[3].getText()) + Integer.parseInt(jTextFields[2].getText())) > 100){
-            res.append("5. The Total Sum Cross Over Rate (CR) and Mutation Rate (Mu) cannot be greater than 100");
-        }
-
-
-
-        if(!res.toString().isEmpty()){
-            JOptionPane.showMessageDialog(j,res.toString(),"Alert",JOptionPane.WARNING_MESSAGE);
-            return false;
-        }
-
-        /*
-        else if(Integer.parseInt(jTextFields[0].getText()) > getMax(edges)){
-            JOptionPane.showMessageDialog(j,"Population size cannot be bigger than the biggest node " + max,"Alert",JOptionPane.ERROR_MESSAGE);
-            return false;
-        }
-         */
-        return true;
-    }
-
-    private boolean empty(JTextField[] jTextFields){
-        return jTextFields[0].getText().isEmpty() || jTextFields[1].getText().isEmpty() || jTextFields[2].getText().isEmpty() || jTextFields[3].getText().isEmpty();
-    }
-
-    private JPanel getJPanel(int row, int col){
-        GridLayout gridLayout = new GridLayout(row,col);
-        gridLayout.setVgap(5);
-        return new JPanel(gridLayout);
-    }
+}
 
     class HintTextField extends JTextField implements FocusListener {
 
@@ -888,8 +804,133 @@ class Gens{
         }
     }
 
-}
+	class UserInput {
+		private JFrame j;
+		private ArrayList<String> tmp = new ArrayList<>();
+		private int population;
+		private int generations;
+		private int crossover;
+		private int mutation;
+		
+		public int getCrossOver() { return crossover;}
+		public int getGenerations() { return generations;}
+		public int getPopulation() { return population;}
+		public int getMutation() { return mutation;}
+		
+		public void showOptionPane(){
 
+        JPanel jPanel = getJPanel(4,1);
+        JPanel jPanel2 = getJPanel(4,1);
+        JPanel jPanel3 = getJPanel(1,2);
+        String[] textFields = {"Population Size (Positive Value)", "Number Of Generations (Positive Value)", "Cross Over Rate [0-100]", "Mutation Rate [0-100]"};
+        HintTextField[] jTextFields = new HintTextField[textFields.length];
+        for(int i = 0; i < jTextFields.length; i++){
+            jPanel.add(new JLabel(textFields[i]));
+            jTextFields[i] = new HintTextField(textFields[i]);
+            jTextFields[i].setToolTipText(textFields[i]);
+            jPanel2.add(jTextFields[i]);
+        }
+
+        if(!tmp.isEmpty())fillTextFields(jTextFields);
+        jPanel3.add(jPanel);
+        jPanel3.add(jPanel2);
+        j = new JFrame();
+
+        int result = JOptionPane.showConfirmDialog(null, jPanel3,
+                "Enter values", JOptionPane.DEFAULT_OPTION);
+
+
+        if(result == JOptionPane.YES_OPTION){
+            fillArray(jTextFields);
+            if(!empty(jTextFields)) {
+                try {
+                    if (!validate(jTextFields)) {
+                        showOptionPane();
+                    }else{
+						population = Integer.parseInt(jTextFields[0].getText());
+						generations = Integer.parseInt(jTextFields[1].getText());
+						crossover = Integer.parseInt(jTextFields[2].getText());
+						mutation = Integer.parseInt(jTextFields[3].getText());
+						
+                       // initPopulation(Integer.parseInt(jTextFields[0].getText()), Integer.parseInt(jTextFields[2].getText())
+                       //         , Integer.parseInt(jTextFields[3].getText()), Integer.parseInt(jTextFields[1].getText()));
+                    }
+                }catch (NumberFormatException e){
+                    JOptionPane.showMessageDialog(j,"Please enter digits only","Alert",JOptionPane.WARNING_MESSAGE);
+                    showOptionPane();
+                }
+            }else{
+                JOptionPane.showMessageDialog(j,"Please enter all fields","Alert",JOptionPane.WARNING_MESSAGE);
+                showOptionPane();
+            }
+        }
+
+
+
+    }
+
+    public void fillArray(HintTextField[] jTextFields){
+        if(!tmp.isEmpty())tmp.clear();
+        for(JTextField jTextField : jTextFields){
+            tmp.add(jTextField.getText());
+        }
+    }
+
+    public void fillTextFields(HintTextField[] jTextFields){
+        for(int i = 0; i < jTextFields.length; i++){
+            jTextFields[i].setText(tmp.get(i));
+            jTextFields[i].setShowingHint(false);
+        }
+    }
+
+    public boolean validate(HintTextField[] jTextFields)throws NumberFormatException{
+
+        StringBuilder res = new StringBuilder();
+
+        if(Integer.parseInt(jTextFields[0].getText()) < 0){
+            res.append("1. Population Size cannot be negative\n");
+        }
+        if(Integer.parseInt(jTextFields[1].getText()) < 0){
+            res.append("2. Number of Generations cannot be negative\n");
+        }
+        if(Integer.parseInt(jTextFields[2].getText()) < 0 || Integer.parseInt(jTextFields[2].getText()) > 100){
+            res.append("3. Cross over rate need to be within the range 0 - 100\n");
+        }
+        if(Integer.parseInt(jTextFields[3].getText()) < 0 || Integer.parseInt(jTextFields[3].getText()) > 100) {
+            res.append("4. Mutation Rate Needs to be within the range 0 - 100");
+        }
+        if((Integer.parseInt(jTextFields[3].getText()) + Integer.parseInt(jTextFields[2].getText())) > 100){
+            res.append("5. The Total Sum Cross Over Rate (CR) and Mutation Rate (Mu) cannot be greater than 100");
+        }
+
+
+
+        if(!res.toString().isEmpty()){
+            JOptionPane.showMessageDialog(j,res.toString(),"Alert",JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        /*
+        else if(Integer.parseInt(jTextFields[0].getText()) > getMax(edges)){
+            JOptionPane.showMessageDialog(j,"Population size cannot be bigger than the biggest node " + max,"Alert",JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+         */
+        return true;
+    }
+
+    public boolean empty(JTextField[] jTextFields){
+        return jTextFields[0].getText().isEmpty() || jTextFields[1].getText().isEmpty() || jTextFields[2].getText().isEmpty() || jTextFields[3].getText().isEmpty();
+    }
+
+    public JPanel getJPanel(int row, int col){
+        GridLayout gridLayout = new GridLayout(row,col);
+        gridLayout.setVgap(5);
+        return new JPanel(gridLayout);
+    }
+
+	}
+	
   class GraphVisualisation extends JFrame{
         private String TITLE;
         private final int HEIGHT = 400;
@@ -952,24 +993,6 @@ class Gens{
                 }
 
             }
-
-           /* for(int i = 0; i < numberOfVerticies; i++){
-                for(int j = 0; j < numberOfVerticies; j++){
-					g.drawOval((int) (Math.cos(i*chunk)*radius) + mov,(int) (Math.sin(i*chunk)*radius) + mov, 5, 5);
-
-                    if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){
-
-                        g.drawLine(
-                                (int) (Math.cos(i*chunk)*radius) + mov,
-                                (int) (Math.sin(i*chunk)*radius) + mov,
-                                (int) (Math.cos(j*chunk)*radius) + mov,
-                                (int) (Math.sin(j *chunk)*radius) +mov
-                                );
-                    }
-
-                }
-
-            }*/
         }
     }
 
