@@ -125,8 +125,8 @@ class Gens{
         OrderingClassTwo orderingClassTwo = new OrderingClassTwo(currentPopulation, crossover, mutation, generations);
         OrderingClassTwo orderingClass = new OrderingClassTwo(tmpNodes, crossover, mutation, generations);
 
-        new Thread(() -> orderingClass.calculate(edges)).run();
-        new Thread(() -> orderingClassTwo.timgaA(edges)).run();
+        orderingClass.calculate(edges);
+        orderingClassTwo.timgaA(edges);
 
 
 
