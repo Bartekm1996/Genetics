@@ -403,7 +403,7 @@ class Gens{
         }
 
 
-private void timgaA(ArrayList<Edge> edges) {
+        private void timgaA(ArrayList<Edge> edges) {
             ArrayList<Ordering> orderings = new ArrayList<>();
             int runs = 0;
             double length_factor = 0.9;

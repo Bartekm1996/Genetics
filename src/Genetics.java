@@ -8,6 +8,9 @@ import java.io.*;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -34,6 +37,22 @@ public class Genetics {
 }
 
 class Gens{
+
+    private boolean showBest;
+    private int stepSpeed;
+
+    public Gens() {
+        stepSpeed = 250;
+    }
+
+    public Gens(boolean showBest) {
+        this(showBest, 1);
+    }
+
+    public Gens(boolean showBest, int stepSpeed) {
+        this.showBest = showBest;
+        this.stepSpeed = stepSpeed;
+    }
 
 
     private Node[][] currentPopulation;
@@ -101,10 +120,17 @@ class Gens{
         }
         System.out.println("\n********************* Orderings ***************************\n");
 
+        Node[][] tmpNodes = currentPopulation.clone();
 
         OrderingClassTwo orderingClassTwo = new OrderingClassTwo(currentPopulation, crossover, mutation, generations);
-                         ///orderingClassTwo.timgaA(edges); 2nd fitness function
-                         orderingClassTwo.calculate(edges);
+        OrderingClassTwo orderingClass = new OrderingClassTwo(tmpNodes, crossover, mutation, generations);
+
+        new Thread(() -> orderingClass.calculate(edges)).run();
+        new Thread(() -> orderingClassTwo.timgaA(edges)).run();
+
+
+
+
     }
 
     private void printMatrix(int[][] adjMatrix){
@@ -223,7 +249,6 @@ class Gens{
 
         if(!nodes.contains(twoNode)){
             nodes.add(twoNode);
-
         }
 
         edges.add(new Edge(oneNode, twoNode));
@@ -231,8 +256,8 @@ class Gens{
     }
 
     private Node addNode(int nodeNumber){
-            List<Node> nodesCollect  = nodes.stream().filter(x -> x.getNodeNumber() == nodeNumber).collect(Collectors.toList());
-            return nodesCollect.size() == 1 ? nodesCollect.get(0) : new Node(nodeNumber);
+        List<Node> nodesCollect  = nodes.stream().filter(x -> x.getNodeNumber() == nodeNumber).collect(Collectors.toList());
+        return nodesCollect.size() == 1 ? nodesCollect.get(0) : new Node(nodeNumber);
     }
 
     private boolean checkMatrix(int[][] adj){
@@ -313,6 +338,10 @@ class Gens{
         public int getNodeNumber() {
             return nodeNumber;
         }
+
+        public String toString() {
+            return String.format("x:%.2f y:%.2f n:%d%n", x, y, nodeNumber);
+        }
     }
 
     class Ordering{
@@ -378,20 +407,21 @@ class Gens{
 
         private void timgaA(ArrayList<Edge> edges) {
             ArrayList<Ordering> orderings = new ArrayList<>();
+            long totalTime = 0;
             int runs = 0;
-            double length_factor = 0.9;
-            double disconnected_multiplier = 0.5;
-            double K = 1;
-            double diameter = 0.5;
-            double L0 = 960;
-            double energy = 0;
-            double L = (L0 / diameter) * length_factor;
-            double[][] dm;
+            double fitnessScore = 0;
+            double best = Integer.MAX_VALUE;
+            int bestGen = 0;//what gen was this reach
+            int[][] bestAd = null;
+            Node[] bestOrder = null;
 
+            GraphVisualisation graph = new GraphVisualisation("Timga-A");
             while (runs != generations) {
 
 
                 for (int j = 0; j < this.orderings.length; j++) {
+                    long startTime = System.nanoTime();
+                    double totalDist = 0, minDist = 0, eval = 0;
                     Node[] nodes = this.orderings[j];
                     double chunk = ((2 * Math.PI) / nodes.length);
 
@@ -412,66 +442,83 @@ class Gens{
                                 edge.getNodeTwo().setX(node.getX());
                             }
                         }
-                    }
-
-                    for (Edge edge : edges) {
                         edge.calculateDiastance();
                     }
 
-
-                    diameter = getDim(nodes);
-
-                    L0 = 960;
-                    L = (L0 / diameter) * length_factor;
-                    dm = new double[nodes.length][nodes.length];
-
-
-                    for (int i = 0; i < nodes.length - 1; i++) {
-                        for (int k = i + 1; k < nodes.length; k++) {
-                            Number d_ij = Point2D.distance(nodes[i].getX(), nodes[i].getY(), nodes[k].getX(), nodes[k].getY());
-                            Number d_ji = Point2D.distance(nodes[k].getX(), nodes[k].getY(), nodes[i].getX(), nodes[i].getY());
-                            double dist = diameter * disconnected_multiplier;
-                            if (d_ij != null)
-                                dist = Math.min(d_ij.doubleValue(), dist);
-                            if (d_ji != null)
-                                dist = Math.min(d_ji.doubleValue(), dist);
-                            dm[i][k] = dist;
+                    double distance = 1, tmpDist = 0, minDisance = 1, minDistanceEdge = 1;
+                    for(int i = 0; i < nodes.length; i++){
+                        for(int k = 0; k < nodes.length; k++){
+                            if(!nodes[i].equals(nodes[k])){
+                                tmpDist = Point2D.distance(nodes[i].getX(),nodes[i].getY(), nodes[k].getX(), nodes[k].getY());
+                                distance = Math.min(distance, tmpDist);
+                                minDisance = Math.min(minDisance, tmpDist);
+                            }
                         }
+                        totalDist+= distance;
+                        distance = 1;
+                    }
+
+
+                    minDist = (nodes.length * Math.pow(minDisance, 2));
+
+                    double std = 0;
+
+                    for(Edge edge : edges){
+                        minDistanceEdge = Math.min(minDistanceEdge, edge.getDistance());
                     }
 
 
 
-                    for (int i = 0; i < nodes.length - 1; i++) {
-                        for (int k = i + 1; k < nodes.length; k++) {
-                            double dist = dm[i][k];
-                            double l_ij = L * dist;
-                            double k_ij = K / (dist * dist);
-                            double dx = nodes[i].getX() - nodes[k].getX();
-                            double dy = nodes[i].getY() - nodes[k].getY();
-                            double d = Point2D.distance(nodes[i].getX(), nodes[i].getY(), nodes[k].getX(), nodes[k].getY());
-                            energy += k_ij / 2 * (dx * dx + dy * dy + l_ij * l_ij -
-                                    2 * l_ij * d);
-
-                        }
+                    for (Edge edge : edges){
+                        std += Math.pow((edge.getDistance() - minDistanceEdge), 2);
                     }
 
+                    std = Math.sqrt((std/(nodes.length-1)));
 
-                    orderings.add(new Ordering(nodes, energy, j));
-                    System.out.println("Energy " + energy);
-                    energy = 0;
+
+
+                    double edgeCrossings = ((nodes.length/2) * ((nodes.length-1)/2) * (edges.size()/2) * ((edges.size()-1)/2));
+
+
+                    eval =  Math.abs((2 * totalDist) - (2 * (std)) - (2.5 * (std/minDist)) + (.25 * (nodes.length * (Math.pow(minDist, 2)))) - (((edgeCrossings))));
+
+
+                    long endTime = System.nanoTime() - startTime;
+
+                    orderings.add(new Ordering(nodes, eval, j));
+
+
+                    totalTime += (endTime/this.orderings.length);
+                    fitnessScore = eval;
                 }
 
 
                 orderings.sort(Comparator.comparingDouble(Ordering::getTotalDistance));
 
-                for (int i = 0; i < orderings.size(); i++) {
+                for(int i = 0; i < orderings.size(); i++){
                     this.orderings[i] = orderings.get(i).getOrdering();
                 }
 
                 try {
-                    Thread.sleep(500);
-                    new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "Timga-A");
-                } catch (InterruptedException e) {
+                    Thread.sleep(stepSpeed);
+                    // new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "First Drawing Algorithm");
+                    boolean isFitter = fitnessScore < best;
+                    if(isFitter) {
+                        bestAd = adj.clone();
+                        bestOrder = this.orderings[0].clone();
+                        best = fitnessScore;
+                        bestGen = runs;
+                    }
+
+                    if(showBest && isFitter) {
+                        graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+                    } else {
+                        graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+                    }
+
+                    graph.setText(String.format("Generation: %d/%d Fitness: %.2f (Best: %.2f Gen: %d)", runs, generations, fitnessScore, best, bestGen));
+                    graph.repaint();
+                }catch (InterruptedException e){
                     System.out.println(e);
                 }
 
@@ -481,26 +528,19 @@ class Gens{
 
                 orderings.clear();
 
+
                 runs++;
             }
 
+            totalTime = (totalTime/generations);
+            System.out.println("Average Time For Fitness Function " + totalTime);
+            graph.setText(String.format("Avg: %d (Best: %.2f Gen: %d)", totalTime, best,bestGen));
 
-        }
-
-        public double getDim(Node[] nodes) {
-
-            double diameter = 0;
-
-            for(Node nodeOne : nodes){
-                for(Node nodeTwo : nodes){
-                    if(!nodeOne.equals(nodeTwo)){
-                        Number dist = Point2D.distance(nodeOne.getX(), nodeOne.getY(), nodeTwo.getX(), nodeTwo.getY());
-                        diameter = Math.max(diameter, dist.doubleValue());
-                    }
-                }
+            if(bestAd != null && bestOrder != null) {
+                graph.updateFunc(bestAd, bestOrder, bestOrder.length);
             }
+            graph.repaint();
 
-            return diameter;
         }
 
         private void calculate(ArrayList<Edge> edges) {
@@ -510,8 +550,13 @@ class Gens{
 
             int runs = 0;
             double dist = 0;
+            GraphVisualisation graph = new GraphVisualisation("First Drawing Algorithm");
+            double fitnessScore = 0;
+            double best = Integer.MAX_VALUE;
+            int bestGen = 0;//what gen was this reach
+            int[][] bestAd = null;
+            Node[] bestOrder = null;
             while(runs != generations) {
-
 
                 for (int j = 0; j < this.orderings.length; j++) {
                     long startTime = System.nanoTime();
@@ -542,11 +587,11 @@ class Gens{
                     }
 
                     long endTime = System.nanoTime() - startTime;
-                    System.out.println("time elapsed " + endTime);
                     orderings.add(new Ordering(nodes, dist, j));
 
 
                     totalTime += (endTime/this.orderings.length);
+                    fitnessScore = dist;
                     dist = 0;
                 }
 
@@ -557,8 +602,24 @@ class Gens{
                 }
 
                 try {
-                    Thread.sleep(500);
-                    new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "First Drawing Algorithm");
+                    Thread.sleep(stepSpeed);
+                    // new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "First Drawing Algorithm");
+                    boolean isFitter = fitnessScore < best;
+                    if(isFitter) {
+                        bestAd = adj.clone();
+                        bestOrder = this.orderings[0].clone();
+                        best = fitnessScore;
+                        bestGen = runs;
+                    }
+
+                    if(showBest && isFitter) {
+                        graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+                    } else {
+                        graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+                    }
+
+                    graph.setText(String.format("Generation: %d/%d Fitness: %.2f (Best: %.2f Gen: %d)", runs, generations, fitnessScore, best, bestGen));
+                    graph.repaint();
                 }catch (InterruptedException e){
                     System.out.println(e);
                 }
@@ -575,10 +636,16 @@ class Gens{
 
             totalTime = (totalTime/generations);
             System.out.println("Average Time For Fitness Function " + totalTime);
+            graph.setText(String.format("Avg: %d (Best: %.2f Gen: %d)", totalTime, best,bestGen));
+
+            if(bestAd != null && bestOrder != null) {
+                graph.updateFunc(bestAd, bestOrder, bestOrder.length);
+            }
+            graph.repaint();
 
         }
 
-         private Node[][] crossOver(Node[][] nodes){
+        private Node[][] crossOver(Node[][] nodes){
             ArrayList<Node[]> tmp = copy(nodes, nodes.length);
             ArrayList<Node[]> arrays = new ArrayList<>();
 
@@ -642,7 +709,7 @@ class Gens{
                 i++;
             }
 
-            return new ArrayList<>(){{
+            return new ArrayList<Node[]>(){{
                 add(removeDups(tmpOne));
                 add(removeDups(tmpTwo));
             }};
@@ -827,31 +894,65 @@ class Gens{
 
     class GraphVisualisation extends JFrame{
         private String TITLE;
-        private final int HEIGHT = 960;
-        private final int WIDTH = 960;
+        private final int HEIGHT = 400;
+        private final int WIDTH = 400;
         private int[][] adjacencyMatrix;
         private int numberOfVerticies;
         private Node[] ordering;
         private double chunk;
+        private String text;
 
-        public GraphVisualisation(int[][] adjacencyMatrix, Node[] ordering, int numberOfVerticies, String title){
+        public GraphVisualisation(String title){
+            this.TITLE = title;
+            setTitle(title);
+            setSize(WIDTH, HEIGHT);
+            setVisible(true);
+            setDefaultCloseOperation(EXIT_ON_CLOSE);
+            text = "";
+        }
+
+        public void updateFunc(int[][] adjacencyMatrix, Node[] ordering, int numberOfVerticies) {
             this.adjacencyMatrix = adjacencyMatrix;
             this.ordering = ordering;
             this.numberOfVerticies = numberOfVerticies;
             this.chunk = (Math.PI * 2)/((double) numberOfVerticies);
-            this.TITLE = title;
-            setTitle(title);
-            setSize(HEIGHT,WIDTH);
-            setVisible(true);
-            setDefaultCloseOperation(EXIT_ON_CLOSE);
+
+        }
+        public void setText(String text) {
+            this.text = text;
         }
 
         @Override
         public void paint(Graphics g){
+            super.paintComponents(g);
             int radius = 100;
             int mov = 200;
+            g.drawString(text, 10, 350);
+
             for(int i = 0; i < numberOfVerticies; i++){
+                int xx = (int) (Math.cos(i*chunk)*radius) + mov;
+                int yy = (int) (Math.sin(i*chunk)*radius) + mov;
+                g.drawOval(xx,yy, 5, 5);
+                g.drawString("" + ordering[i].getNodeNumber(), xx, yy);
+
                 for(int j = 0; j < numberOfVerticies; j++){
+                    if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){
+                        g.drawLine(
+                                (int) (Math.cos(i*chunk)*radius) + mov,
+                                (int) (Math.sin(i*chunk)*radius) + mov,
+                                (int) (Math.cos(j*chunk)*radius) + mov,
+                                (int) (Math.sin(j *chunk)*radius) +mov
+                        );
+                    }
+
+                }
+
+            }
+
+           /* for(int i = 0; i < numberOfVerticies; i++){
+                for(int j = 0; j < numberOfVerticies; j++){
+					g.drawOval((int) (Math.cos(i*chunk)*radius) + mov,(int) (Math.sin(i*chunk)*radius) + mov, 5, 5);
+
                     if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){
 
                         g.drawLine(
@@ -864,7 +965,7 @@ class Gens{
 
                 }
 
-            }
+            }*/
         }
     }
 
