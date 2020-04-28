@@ -1,17 +1,24 @@
+/*
+ * Created by
+ * Bartlomiej Mlynarkiewicz - 17241782
+ * Paul Kinsella - 17244412
+ * Norbert Cholewka - 16110366
+ */
+
+
 import javax.swing.*;
-import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.geom.Point2D;
 import java.io.*;
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class Genetics2 {
+public class is17241782 {
 
     public static void main(String[] args) {
 
@@ -27,41 +34,79 @@ public class Genetics2 {
         }
 
         */
-		boolean showBest = true;
-		int stepSpeed = 1;
-		for(int i = 0; i < args.length;i++) {
-			switch(i) {
-				case 0: showBest = Boolean.parseBoolean(args[i]); break;
-				case 1: stepSpeed = Integer.parseInt(args[i]); break;
-			}
-		}
-		
-        Gens gens = new Gens(showBest, stepSpeed);
-        gens.readFile("edges.txt");
+
+
+        UserInput up = new UserInput();
+        up.showOptionPane();
+
+        final int pop = up.getPopulation();
+        final int gen = up.getGenerations();
+        final int crs = up.getCrossOver();
+        final int mut = up.getMutation();
+
+
+            Gens gens = new Gens(true,  200);
+            System.out.println("First Drawing Algorithm");
+
+            /*
+                Change file path
+            */
+            gens.readFile("/Users/bartek/IdeaProjects/Genetics/src/edges.txt");
+            gens.setMode(1);
+            gens.setData(pop, gen, crs, mut);
+            gens.init();
+
+
+
+            Gens gensTwo = new Gens(true, 200);
+            System.out.println("TimGA Drawing Algorithm");
+            /*
+                Change file path
+            */
+            gensTwo.readFile("/Users/bartek/IdeaProjects/Genetics/src/edges.txt");
+            gensTwo.setMode(2);
+            gensTwo.setData(pop, gen, crs, mut);
+            gensTwo.init();
 
     }
 }
 
 class Gens{
-	private boolean showBest;
-	private int stepSpeed;
-	
-	public Gens() {
-		stepSpeed = 1;
-	}
-	
-	public Gens(boolean showBest) {
-		this(showBest, 1);
-	}
-	
-	public Gens(boolean showBest, int stepSpeed) {
-		this.showBest = showBest;
-		this.stepSpeed = stepSpeed;
-	}
 
+    private boolean showBest;
+    private int stepSpeed;
+    private int mode;
+    private int tPop;
+    private int tGen;
+    private int tCross;
+    private int tMut;
+
+    public void setData(int tPop, int tGen, int tCross, int tMut) {
+        this.tPop = tPop;
+        this.tGen = tGen;
+        this.tCross = tCross;
+        this.tMut = tMut;
+    }
+
+    public Gens() {
+        stepSpeed = 250;
+    }
+
+    public Gens(boolean showBest) {
+        this(showBest, 1);
+    }
+
+    public Gens(boolean showBest, int stepSpeed) {
+        this.showBest = showBest;
+        this.stepSpeed = stepSpeed;
+    }
+
+
+    public void setMode(int mode) {
+        this.mode = mode;
+    }
     private Node[][] currentPopulation;
     private JFrame j;
-    private ArrayList<String> tmp = new ArrayList<>();
     private ArrayList<Edge> edges = new ArrayList<>();
     private ArrayList<Node> nodes = new ArrayList<>();
     private ArrayList<Node> tmpNodes = new ArrayList<>();
@@ -84,7 +129,12 @@ class Gens{
         return  maxNodeOne > maxNodeTwo ? maxNodeOne : maxNodeTwo;
     }
 
-    private void initPopulation(int popSize, int crossover, int mutation, int generations){
+    public void init(){
+        int popSize = tPop;
+        int crossover = tCross;
+        int mutation = tMut;
+        int generations = tGen;
+
 
         int max = (getMax(edges)+1);
         adj = new int[max][max];
@@ -124,10 +174,25 @@ class Gens{
         }
         System.out.println("\n********************* Orderings ***************************\n");
 
+        Node[][] tmpNodes = currentPopulation.clone();
 
-        OrderingClassTwo orderingClassTwo = new OrderingClassTwo(currentPopulation, crossover, mutation, generations);
-                         //orderingClassTwo.timgaA(edges);// 2nd fitness function
-                         orderingClassTwo.calculate(edges);
+
+        switch(mode) {
+            case 1:
+                OrderingClassTwo orderingClass = new OrderingClassTwo(tmpNodes, crossover, mutation, generations);
+                orderingClass.calculate(edges);
+                break;
+            case 2:
+                OrderingClassTwo orderingClassTwo = new OrderingClassTwo(currentPopulation, crossover, mutation, generations);
+                orderingClassTwo.timgaA(edges);
+                break;
+        }
+
+
+
+
+
+
     }
 
     private void printMatrix(int[][] adjMatrix){
@@ -201,8 +266,9 @@ class Gens{
         return false;
     }
 
-    void readFile(String filePath){
-
+    public void readFile(String filePath){
+        List<Edge> tEdges = new ArrayList<>();
+        Set<Node> tNodes = new TreeSet<>();
         File file = new File(filePath);
         if(!file.exists()){
             System.out.println("File doesn't exist");
@@ -212,21 +278,29 @@ class Gens{
         try(BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
             ArrayList<String> arrayList = new ArrayList<>();
             String line;
+
             while ((line = bufferedReader.readLine()) != null) {
                 arrayList.add(line);
             }
 
             for(String pts : arrayList){
                 String[] split = pts.split(" ");
-
                 int numOne = Integer.parseInt(split[0]);
                 int numTwo = Integer.parseInt(split[1]);
-
-                addEdge(numOne,numTwo);
-
+                Node oneNode = new Node(numOne);
+                Node twoNode = new Node(numTwo);
+                tNodes.add(oneNode);
+                tNodes.add(twoNode);
+                tEdges.add(new Edge(oneNode, twoNode));
+                // addEdge(numOne,numTwo);
             }
 
-            showOptionPane();
+            nodes.clear();
+            edges.clear();
+            nodes.addAll(tNodes);
+            edges.addAll(tEdges);
+
+            //showOptionPane();
 
         }catch (IOException e){
             System.out.println("Failed to read file, exiting");
@@ -236,26 +310,9 @@ class Gens{
 
     }
 
-    private void addEdge(int numOne, int numTwo){
-        Node oneNode = addNode(numOne);
-        Node twoNode = addNode(numTwo);
-
-        if(!nodes.contains(oneNode)) {
-            nodes.add(oneNode);
-        }
-
-        if(!nodes.contains(twoNode)){
-            nodes.add(twoNode);
-
-        }
-
-        edges.add(new Edge(oneNode, twoNode));
-
-    }
-
     private Node addNode(int nodeNumber){
-            List<Node> nodesCollect  = nodes.stream().filter(x -> x.getNodeNumber() == nodeNumber).collect(Collectors.toList());
-            return nodesCollect.size() == 1 ? nodesCollect.get(0) : new Node(nodeNumber);
+        List<Node> nodesCollect  = nodes.stream().filter(x -> x.getNodeNumber() == nodeNumber).collect(Collectors.toList());
+        return nodesCollect.size() == 1 ? nodesCollect.get(0) : new Node(nodeNumber);
     }
 
     private boolean checkMatrix(int[][] adj){
@@ -266,81 +323,6 @@ class Gens{
         return count == 0;
     }
 
-    class Edge{
-
-        private Node nodeOne;
-        private Node nodeTwo;
-        private double distance;
-
-        public Edge(Node nodeOne, Node nodeTwo){
-            this.nodeOne = nodeOne;
-            this.nodeTwo = nodeTwo;
-        }
-
-        public Node getNodeOne() {
-            return nodeOne;
-        }
-
-        public Node getNodeTwo() {
-            return nodeTwo;
-        }
-
-        public void setDistance(double distance) {
-            this.distance = distance;
-        }
-
-        public double getDistance() {
-            return distance;
-        }
-
-        public void calculateDiastance(){
-            setDistance(Point2D.distance(getNodeOne().getX(),getNodeOne().getY(),getNodeTwo().getX(),getNodeTwo().getY()));
-        }
-
-        public String toString(){
-            return "Node one " + getNodeOne().getNodeNumber() + " x " + getNodeOne().getX() + " y " + getNodeOne().getY() + " Node two " + getNodeTwo().getNodeNumber() + " x " + getNodeTwo().getX() + " y " + getNodeTwo().getY() + " Distance " + getDistance();
-        }
-
-    }
-
-    class Node{
-        private double x;
-        private double y;
-        private int nodeNumber;
-
-        public Node(int nodeNumber){
-            this.nodeNumber = nodeNumber;
-        }
-
-        public Node(double x, double y){
-            this.x = x;
-            this.y = y;
-        }
-
-        public double getY() {
-            return y;
-        }
-
-        public void setY(double y) {
-            this.y = y;
-        }
-
-        public double getX() {
-            return x;
-        }
-
-        public void setX(double x) {
-            this.x = x;
-        }
-
-        public int getNodeNumber() {
-            return nodeNumber;
-        }
-		
-		public String toString() {
-			return String.format("x:%.2f y:%.2f n:%d%n", x, y, nodeNumber);
-		}
-    }
 
     class Ordering{
 
@@ -405,20 +387,22 @@ class Gens{
 
         private void timgaA(ArrayList<Edge> edges) {
             ArrayList<Ordering> orderings = new ArrayList<>();
+            long totalTime = 0, bestTime = 1000000;
             int runs = 0;
-            double length_factor = 0.9;
-            double disconnected_multiplier = 0.5;
-            double K = 1;
-            double diameter = 0.5;
-            double L0 = 960;
-            double energy = 0.2;
-            double L = (L0 / diameter) * length_factor;
-            double[][] dm;
-			final GraphVisualisation graph = new GraphVisualisation("Timga-A");
+            double fitnessScore = 0;
+            double best = Integer.MAX_VALUE;
+            int bestGen = 0;//what gen was this reach
+            int[][] bestAd = null;
+            Node[] bestOrder = null;
+
+            GraphVisualisation graph = new GraphVisualisation("Timga-A");
+            graph.setWindowLoc(450, 0);
             while (runs != generations) {
 
 
                 for (int j = 0; j < this.orderings.length; j++) {
+                    long startTime = System.nanoTime();
+                    double totalDist = 0, minDist = 0, eval = 0;
                     Node[] nodes = this.orderings[j];
                     double chunk = ((2 * Math.PI) / nodes.length);
 
@@ -439,68 +423,85 @@ class Gens{
                                 edge.getNodeTwo().setX(node.getX());
                             }
                         }
-                    }
-
-                    for (Edge edge : edges) {
                         edge.calculateDiastance();
                     }
 
-
-                    diameter = getDim(nodes);
-
-                    L0 = 960;
-                    L = (L0 / diameter) * length_factor;
-                    dm = new double[nodes.length][nodes.length];
-
-
-                    for (int i = 0; i < nodes.length - 1; i++) {
-                        for (int k = i + 1; k < nodes.length; k++) {
-                            Number d_ij = Point2D.distance(nodes[i].getX(), nodes[i].getY(), nodes[k].getX(), nodes[k].getY());
-                            Number d_ji = Point2D.distance(nodes[k].getX(), nodes[k].getY(), nodes[i].getX(), nodes[i].getY());
-                            double dist = diameter * disconnected_multiplier;
-                            if (d_ij != null)
-                                dist = Math.min(d_ij.doubleValue(), dist);
-                            if (d_ji != null)
-                                dist = Math.min(d_ji.doubleValue(), dist);
-                            dm[i][k] = dist;
+                    double distance = 1, tmpDist = 0, minDisance = 1, minDistanceEdge = 1;
+                    for(int i = 0; i < nodes.length; i++){
+                        for(int k = 0; k < nodes.length; k++){
+                            if(!nodes[i].equals(nodes[k])){
+                                tmpDist = Point2D.distance(nodes[i].getX(),nodes[i].getY(), nodes[k].getX(), nodes[k].getY());
+                                distance = Math.min(distance, tmpDist);
+                                minDisance = Math.min(minDisance, tmpDist);
+                            }
                         }
+                        totalDist+= distance;
+                        distance = 1;
+                    }
+
+
+                    minDist = (nodes.length * Math.pow(minDisance, 2));
+
+                    double std = 0;
+
+                    for(Edge edge : edges){
+                        minDistanceEdge = Math.min(minDistanceEdge, edge.getDistance());
                     }
 
 
 
-                    for (int i = 0; i < nodes.length - 1; i++) {
-                        for (int k = i + 1; k < nodes.length; k++) {
-                            double dist = dm[i][k];
-                            double l_ij = L * dist;
-                            double k_ij = K / (dist * dist);
-                            double dx = nodes[i].getX() - nodes[k].getX();
-                            double dy = nodes[i].getY() - nodes[k].getY();
-                            double d = Point2D.distance(nodes[i].getX(), nodes[i].getY(), nodes[k].getX(), nodes[k].getY());
-                            energy += k_ij / 2 * (dx * dx + dy * dy + l_ij * l_ij - 2 * l_ij * d);
-
-                        }
+                    for (Edge edge : edges){
+                        std += Math.pow((edge.getDistance() - minDistanceEdge), 2);
                     }
 
+                    std = Math.sqrt((std/(nodes.length-1)));
 
-                    orderings.add(new Ordering(nodes, energy, j));
-                    System.out.println("Energy " + energy);
-                    energy = 0;
+
+
+                    double edgeCrossings = ((nodes.length/2) * ((nodes.length-1)/2) * (edges.size()/2) * ((edges.size()-1)/2));
+
+
+                    eval =  Math.abs((2 * totalDist) - (2 * (std)) - (2.5 * (std/minDist)) + (.25 * (nodes.length * (Math.pow(minDist, 2)))) - (((edgeCrossings))));
+
+
+                    long endTime = System.nanoTime() - startTime;
+
+                    orderings.add(new Ordering(nodes, eval, j));
+                    bestTime = Math.min(bestTime, endTime);
+
+                    totalTime += endTime;
+                    fitnessScore = eval;
                 }
 
 
                 orderings.sort(Comparator.comparingDouble(Ordering::getTotalDistance));
 
-                for (int i = 0; i < orderings.size(); i++) {
+                for(int i = 0; i < orderings.size(); i++){
                     this.orderings[i] = orderings.get(i).getOrdering();
                 }
 
                 try {
-                    Thread.sleep(1);
-                    //new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "Timga-A");
-                    graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
-					graph.setText("Generation: " + runs);
-					graph.repaint();
-                } catch (InterruptedException e) {
+                    Thread.sleep(stepSpeed);
+                    // new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "First Drawing Algorithm");
+                    boolean isFitter = fitnessScore < best;
+                    if(isFitter) {
+                        bestAd = adj.clone();
+                        bestOrder = this.orderings[0].clone();
+                        best = fitnessScore;
+                        bestGen = runs;
+                    }
+
+                    if(showBest && isFitter) {
+                        graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+                    } else {
+                        graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+                    }
+
+
+
+                    graph.setText(String.format("Generation: %d/%d Fitness: %.2f (Best: %.2f Gen: %d)", runs, generations, fitnessScore, best, bestGen));
+                    graph.repaint();
+                }catch (InterruptedException e){
                     System.out.println(e);
                 }
 
@@ -510,42 +511,36 @@ class Gens{
 
                 orderings.clear();
 
+
                 runs++;
             }
 
+            totalTime = (totalTime/generations);
+            System.out.println("Average Time For Fitness Function " + totalTime);
+            graph.setText(String.format("Average Time For Fitness Function: %d ms (Best: %.2f Gen: %d)", TimeUnit.MILLISECONDS.toSeconds(totalTime), best,bestGen));
 
-        }
-
-        public double getDim(Node[] nodes) {
-
-            double diameter = 0;
-
-            for(Node nodeOne : nodes){
-                for(Node nodeTwo : nodes){
-                    if(!nodeOne.equals(nodeTwo)){
-                        Number dist = Point2D.distance(nodeOne.getX(), nodeOne.getY(), nodeTwo.getX(), nodeTwo.getY());
-                        diameter = Math.max(diameter, dist.doubleValue());
-                    }
-                }
+            if(bestAd != null && bestOrder != null) {
+                graph.updateFunc(bestAd, bestOrder, bestOrder.length);
             }
+            graph.repaint();
 
-            return diameter;
         }
-
 
         private void calculate(ArrayList<Edge> edges) {
             ArrayList<Ordering> orderings = new ArrayList<>();
             long totalTime = 0;
+            long bestTime = 10000000;
 
 
             int runs = 0;
             double dist = 0;
-			final GraphVisualisation graph = new GraphVisualisation("First Drawing Algorithm");
-			double fitnessScore = 0;
-			double best = Integer.MAX_VALUE;
-			int bestGen = 0;//what gen was this reach
-			int[][] bestAd = null;
-			Node[] bestOrder = null;
+            GraphVisualisation graph = new GraphVisualisation("First Drawing Algorithm");
+            graph.setWindowLoc(0, 0);
+            double fitnessScore = 0;
+            double best = Integer.MAX_VALUE;
+            int bestGen = 0;//what gen was this reach
+            int[][] bestAd = null;
+            Node[] bestOrder = null;
             while(runs != generations) {
 
                 for (int j = 0; j < this.orderings.length; j++) {
@@ -577,12 +572,12 @@ class Gens{
                     }
 
                     long endTime = System.nanoTime() - startTime;
-                    System.out.println("time elapsed " + endTime);
                     orderings.add(new Ordering(nodes, dist, j));
 
+                    bestTime = Math.min(bestTime, endTime);
 
-                    totalTime += (endTime/this.orderings.length);
-					fitnessScore = dist;
+                    totalTime += endTime;
+                    fitnessScore = dist;
                     dist = 0;
                 }
 
@@ -594,23 +589,23 @@ class Gens{
 
                 try {
                     Thread.sleep(stepSpeed);
-                   // new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "First Drawing Algorithm");
-				   boolean isFitter = fitnessScore < best;
-				   if(isFitter) {
-					   bestAd = adj.clone();
-					   bestOrder = this.orderings[0].clone();
-					   best = fitnessScore;
-					   bestGen = runs;					   
-				   }
-				   
-				   if(showBest && isFitter) {
-					   graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
-				   } else {
-					   graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
-				   }
-				   
-				   graph.setText(String.format("Generation: %d/%d Fitness: %.2f (Best: %.2f Gen: %d)", runs, generations, fitnessScore, best, bestGen));		   
-				   graph.repaint();
+                    // new GraphVisualisation(adj, this.orderings[0], this.orderings[0].length, "First Drawing Algorithm");
+                    boolean isFitter = fitnessScore < best;
+                    if(isFitter) {
+                        bestAd = adj.clone();
+                        bestOrder = this.orderings[0].clone();
+                        best = fitnessScore;
+                        bestGen = runs;
+                    }
+
+                    if(showBest && isFitter) {
+                        graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+                    } else {
+                        graph.updateFunc(adj, this.orderings[0], this.orderings[0].length);
+                    }
+
+                    graph.setText(String.format("Generation: %d/%d Fitness: %.2f (Best: %.2f Gen: %d)", runs, generations, fitnessScore, best, bestGen));
+                    graph.repaint();
                 }catch (InterruptedException e){
                     System.out.println(e);
                 }
@@ -627,16 +622,16 @@ class Gens{
 
             totalTime = (totalTime/generations);
             System.out.println("Average Time For Fitness Function " + totalTime);
-			graph.setText(String.format("Avg: %d (Best: %.2f Gen: %d)", totalTime, best,bestGen));
-			
-			if(bestAd != null && bestOrder != null) {
-				graph.updateFunc(bestAd, bestOrder, bestOrder.length);
-			}
-			graph.repaint();
+            graph.setText(String.format("Average Time For Fitness Function: %d ms (Best: %.2f Gen: %d)", TimeUnit.MILLISECONDS.toSeconds(totalTime), best,bestGen));
+
+            if(bestAd != null && bestOrder != null) {
+                graph.updateFunc(bestAd, bestOrder, bestOrder.length);
+            }
+            graph.repaint();
 
         }
 
-         private Node[][] crossOver(Node[][] nodes){
+        private Node[][] crossOver(Node[][] nodes){
             ArrayList<Node[]> tmp = copy(nodes, nodes.length);
             ArrayList<Node[]> arrays = new ArrayList<>();
 
@@ -776,7 +771,60 @@ class Gens{
 
     }
 
-    private void showOptionPane(){
+}
+
+class HintTextField extends JTextField implements FocusListener {
+
+    private final String hint;
+    private boolean showingHint;
+
+    HintTextField(final String hint) {
+        super(hint);
+        this.hint = hint;
+        this.showingHint = true;
+        super.addFocusListener(this);
+    }
+
+    @Override
+    public void focusGained(FocusEvent e) {
+        if (this.getText().isEmpty()) {
+            super.setText("");
+            showingHint = false;
+        }
+    }
+
+    public void setShowingHint(boolean showing){
+        this.showingHint = showing;
+    }
+
+    @Override
+    public void focusLost(FocusEvent e) {
+        if (this.getText().isEmpty()) {
+            super.setText(hint);
+            showingHint = true;
+        }
+    }
+
+    @Override
+    public String getText() {
+        return showingHint ? "" : super.getText();
+    }
+}
+
+class UserInput {
+    private JFrame j;
+    private ArrayList<String> tmp = new ArrayList<>();
+    private int population;
+    private int generations;
+    private int crossover;
+    private int mutation;
+
+    public int getCrossOver() { return crossover;}
+    public int getGenerations() { return generations;}
+    public int getPopulation() { return population;}
+    public int getMutation() { return mutation;}
+
+    public void showOptionPane(){
 
         JPanel jPanel = getJPanel(4,1);
         JPanel jPanel2 = getJPanel(4,1);
@@ -806,8 +854,13 @@ class Gens{
                     if (!validate(jTextFields)) {
                         showOptionPane();
                     }else{
-                        initPopulation(Integer.parseInt(jTextFields[0].getText()), Integer.parseInt(jTextFields[2].getText())
-                                , Integer.parseInt(jTextFields[3].getText()), Integer.parseInt(jTextFields[1].getText()));
+                        population = Integer.parseInt(jTextFields[0].getText());
+                        generations = Integer.parseInt(jTextFields[1].getText());
+                        crossover = Integer.parseInt(jTextFields[2].getText());
+                        mutation = Integer.parseInt(jTextFields[3].getText());
+
+                        // initPopulation(Integer.parseInt(jTextFields[0].getText()), Integer.parseInt(jTextFields[2].getText())
+                        //         , Integer.parseInt(jTextFields[3].getText()), Integer.parseInt(jTextFields[1].getText()));
                     }
                 }catch (NumberFormatException e){
                     JOptionPane.showMessageDialog(j,"Please enter digits only","Alert",JOptionPane.WARNING_MESSAGE);
@@ -823,21 +876,21 @@ class Gens{
 
     }
 
-    private void fillArray(HintTextField[] jTextFields){
+    public void fillArray(HintTextField[] jTextFields){
         if(!tmp.isEmpty())tmp.clear();
         for(JTextField jTextField : jTextFields){
             tmp.add(jTextField.getText());
         }
     }
 
-    private void fillTextFields(HintTextField[] jTextFields){
+    public void fillTextFields(HintTextField[] jTextFields){
         for(int i = 0; i < jTextFields.length; i++){
             jTextFields[i].setText(tmp.get(i));
             jTextFields[i].setShowingHint(false);
         }
     }
 
-    private boolean validate(HintTextField[] jTextFields)throws NumberFormatException{
+    public boolean validate(HintTextField[] jTextFields)throws NumberFormatException{
 
         StringBuilder res = new StringBuilder();
 
@@ -873,129 +926,169 @@ class Gens{
         return true;
     }
 
-    private boolean empty(JTextField[] jTextFields){
+    public boolean empty(JTextField[] jTextFields){
         return jTextFields[0].getText().isEmpty() || jTextFields[1].getText().isEmpty() || jTextFields[2].getText().isEmpty() || jTextFields[3].getText().isEmpty();
     }
 
-    private JPanel getJPanel(int row, int col){
+    public JPanel getJPanel(int row, int col){
         GridLayout gridLayout = new GridLayout(row,col);
         gridLayout.setVgap(5);
         return new JPanel(gridLayout);
     }
 
-    class GraphVisualisation extends JFrame{
-        private String TITLE;
-        private final int HEIGHT = 400;
-        private final int WIDTH = 400;
-        private int[][] adjacencyMatrix;
-        private int numberOfVerticies;
-        private Node[] ordering;
-        private double chunk;
-		private String text;
+}
 
-        public GraphVisualisation(String title){
-            this.TITLE = title;
-            setTitle(title);
-            setSize(WIDTH, HEIGHT);
-            setVisible(true);
-            setDefaultCloseOperation(EXIT_ON_CLOSE);
-			text = "";
-        }
+class GraphVisualisation extends JFrame{
+    private String TITLE;
+    private final int HEIGHT = 400;
+    private final int WIDTH = 500;
+    private int[][] adjacencyMatrix;
+    private int numberOfVerticies;
+    private Node[] ordering;
+    private double chunk;
+    private String text;
 
-		public void updateFunc(int[][] adjacencyMatrix, Node[] ordering, int numberOfVerticies) {
-			this.adjacencyMatrix = adjacencyMatrix;
-            this.ordering = ordering;
-            this.numberOfVerticies = numberOfVerticies;
-            this.chunk = (Math.PI * 2)/((double) numberOfVerticies);
-			
-		}
-		public void setText(String text) {
-			this.text = text;
-		}
-		
-        @Override
-        public void paint(Graphics g){
-			super.paintComponents(g);
-            int radius = 100;
-            int mov = 200;
-			g.drawString(text, 10, 350);
-			
-			for(int i = 0; i < numberOfVerticies; i++){
-				int xx = (int) (Math.cos(i*chunk)*radius) + mov;
-				int yy = (int) (Math.sin(i*chunk)*radius) + mov;
-				g.drawOval(xx,yy, 5, 5);
-				g.drawString("" + ordering[i].getNodeNumber(), xx, yy);
-                
-				for(int j = 0; j < numberOfVerticies; j++){
-                    if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){			
-                       g.drawLine(
-                                (int) (Math.cos(i*chunk)*radius) + mov,
-                                (int) (Math.sin(i*chunk)*radius) + mov,
-                                (int) (Math.cos(j*chunk)*radius) + mov,
-                                (int) (Math.sin(j *chunk)*radius) +mov
-                                );
-                    }
+    public GraphVisualisation(String title){
+        this.TITLE = title;
+        setTitle(title);
+        setSize(WIDTH, HEIGHT);
+        setVisible(true);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        text = "";
+    }
 
+    public void setWindowLoc(int xOffsett, int yOffset) {
+        Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
+        int x = (int) ((dimension.getWidth() - getWidth()) / 2);
+        int y = (int) ((dimension.getHeight() - getHeight()) / 2);
+        setLocation(x + xOffsett, y + yOffset);
+    }
+    public void updateFunc(int[][] adjacencyMatrix, Node[] ordering, int numberOfVerticies) {
+        this.adjacencyMatrix = adjacencyMatrix;
+        this.ordering = ordering;
+        this.numberOfVerticies = numberOfVerticies;
+        this.chunk = (Math.PI * 2)/((double) numberOfVerticies);
+
+    }
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    @Override
+    public void paint(Graphics g){
+        super.paintComponents(g);
+        int radius = 100;
+        int mov = 200;
+        g.drawString(text, 10, 350);
+
+        for(int i = 0; i < numberOfVerticies; i++){
+            int xx = (int) (Math.cos(i*chunk)*radius) + mov;
+            int yy = (int) (Math.sin(i*chunk)*radius) + mov;
+            g.drawOval(xx,yy, 5, 5);
+            g.drawString("" + ordering[i].getNodeNumber(), xx, yy);
+
+            for(int j = 0; j < numberOfVerticies; j++){
+                if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){
+                    g.drawLine(
+                            (int) (Math.cos(i*chunk)*radius) + mov,
+                            (int) (Math.sin(i*chunk)*radius) + mov,
+                            (int) (Math.cos(j*chunk)*radius) + mov,
+                            (int) (Math.sin(j *chunk)*radius) +mov
+                    );
                 }
 
             }
-			
-           /* for(int i = 0; i < numberOfVerticies; i++){
-                for(int j = 0; j < numberOfVerticies; j++){
-					g.drawOval((int) (Math.cos(i*chunk)*radius) + mov,(int) (Math.sin(i*chunk)*radius) + mov, 5, 5);
-					
-                    if(adjacencyMatrix[ordering[i].getNodeNumber()][ordering[j].getNodeNumber()] == 1){
-						
-                        g.drawLine(
-                                (int) (Math.cos(i*chunk)*radius) + mov,
-                                (int) (Math.sin(i*chunk)*radius) + mov,
-                                (int) (Math.cos(j*chunk)*radius) + mov,
-                                (int) (Math.sin(j *chunk)*radius) +mov
-                                );
-                    }
 
-                }
-
-            }*/
         }
     }
+}
 
-    class HintTextField extends JTextField implements FocusListener {
+class Edge{
 
-        private final String hint;
-        private boolean showingHint;
+    private Node nodeOne;
+    private Node nodeTwo;
+    private double distance;
 
-        HintTextField(final String hint) {
-            super(hint);
-            this.hint = hint;
-            this.showingHint = true;
-            super.addFocusListener(this);
-        }
-
-        @Override
-        public void focusGained(FocusEvent e) {
-            if (this.getText().isEmpty()) {
-                super.setText("");
-                showingHint = false;
-            }
-        }
-
-        public void setShowingHint(boolean showing){
-            this.showingHint = showing;
-        }
-
-        @Override
-        public void focusLost(FocusEvent e) {
-            if (this.getText().isEmpty()) {
-                super.setText(hint);
-                showingHint = true;
-            }
-        }
-
-        @Override
-        public String getText() {
-            return showingHint ? "" : super.getText();
-        }
+    public Edge(Node nodeOne, Node nodeTwo){
+        this.nodeOne = nodeOne;
+        this.nodeTwo = nodeTwo;
     }
 
+    public Node getNodeOne() {
+        return nodeOne;
+    }
+
+    public Node getNodeTwo() {
+        return nodeTwo;
+    }
+
+    public void setDistance(double distance) {
+        this.distance = distance;
+    }
+
+    public double getDistance() {
+        return distance;
+    }
+
+    public void calculateDiastance(){
+        setDistance(Point2D.distance(getNodeOne().getX(),getNodeOne().getY(),getNodeTwo().getX(),getNodeTwo().getY()));
+    }
+
+    public String toString(){
+        return "Node one " + getNodeOne().getNodeNumber() + " x " + getNodeOne().getX() + " y " + getNodeOne().getY() + " Node two " + getNodeTwo().getNodeNumber() + " x " + getNodeTwo().getX() + " y " + getNodeTwo().getY() + " Distance " + getDistance();
+    }
+
+}
+
+class Node implements Comparable <Node> {
+    private double x;
+    private double y;
+    private int nodeNumber;
+
+    public Node(int nodeNumber){
+        this.nodeNumber = nodeNumber;
+    }
+
+    public Node(double x, double y){
+        this.x = x;
+        this.y = y;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public void setY(double y) {
+        this.y = y;
+    }
+
+    public double getX() {
+        return x;
+    }
+
+    public void setX(double x) {
+        this.x = x;
+    }
+
+    public int getNodeNumber() {
+        return nodeNumber;
+    }
+
+    public String toString() {
+        return String.format("x:%.2f y:%.2f n:%d%n", x, y, nodeNumber);
+    }
+
+    public int compareTo(Node that) {
+        return this.nodeNumber - that.nodeNumber;
+    }
+
+    public boolean equals(Object obj) {
+        if(this == obj) return true;
+
+        if(obj instanceof Node) {
+            return this.nodeNumber == ((Node)obj).nodeNumber;
+        }
+
+        return false;
+    }
 }
